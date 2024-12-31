@@ -62,4 +62,18 @@ public class TableListFetcher {
             statement.executeUpdate();
         }
     }
+
+    public static void deleteTableFromDatabase(HotelTable table) throws SQLException {
+        String query = "DELETE FROM hotel_table WHERE id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            // Set the table ID to the PreparedStatement
+            statement.setInt(1, table.getId());
+
+            // Execute the DELETE statement
+            statement.executeUpdate();
+        }
+    }
+
 }

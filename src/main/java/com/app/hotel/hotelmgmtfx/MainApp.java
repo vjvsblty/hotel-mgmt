@@ -1,6 +1,7 @@
 package com.app.hotel.hotelmgmtfx;
 
 import com.app.hotel.hotelmgmtfx.screens.LoginScreen;
+import com.app.hotel.hotelmgmtfx.screens.MainScreen;
 import javafx.application.Application;
 import javafx.stage.Stage;
 

@@ -8,12 +8,11 @@ import javafx.collections.transformation.FilteredList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.sql.SQLException;
 import java.util.List;
 
 public class TablesManageScreen {
@@ -91,10 +90,16 @@ public class TablesManageScreen {
         // Initial population of cards
         updateTableCards(tableCardsPane, filteredTables);
 
+        // Wrap the FlowPane (table cards) inside a ScrollPane for scrolling functionality
+        ScrollPane scrollPane = new ScrollPane(tableCardsPane);
+        scrollPane.setFitToWidth(true);  // Ensure the content stretches to fit the width of the pane
+        scrollPane.setFitToHeight(false); // Allow vertical scrolling
+
         // Add components to the layout
-        tablesManagePane.getChildren().addAll(searchField, addTableBox, tableCardsPane);
+        tablesManagePane.getChildren().addAll(searchField, addTableBox, scrollPane);
         contentPane.getChildren().add(tablesManagePane);
     }
+
 
     private void updateTableCards(FlowPane flowPane, List<HotelTable> tables) {
         flowPane.getChildren().clear(); // Clear current cards
@@ -130,8 +135,14 @@ public class TablesManageScreen {
             showEditDialog(table, flowPane);
         });
 
+        Button deleteButton = new Button("Delete");
+        deleteButton.setStyle("-fx-background-color: red; -fx-text-fill: white;");
+        deleteButton.setOnAction(e -> {
+            showDeleteDialog(table, flowPane, tablesList);
+        });
+
         // Add components to the card
-        card.getChildren().addAll(tableNameLabel, capacityLabel, editButton);
+        card.getChildren().addAll(tableNameLabel, capacityLabel, editButton, deleteButton);
 
         // Add the card to the FlowPane
         flowPane.getChildren().add(card);
@@ -185,6 +196,54 @@ public class TablesManageScreen {
         editStage.setScene(scene);
         editStage.show();
     }
+
+    private void showDeleteDialog(HotelTable table, FlowPane flowPane, List<HotelTable> tablesList) {
+        Stage deleteStage = new Stage();
+        deleteStage.setTitle("Delete Table");
+
+        VBox deletePane = new VBox(20);
+        deletePane.setAlignment(Pos.CENTER);
+        deletePane.setPadding(new Insets(20));
+
+        Label messageLabel = new Label("Are you sure you want to delete: "+table.getTableName()+" ?");
+        Button yesButton = new Button("Yes");
+        Button noButton = new Button("No");
+
+        yesButton.setStyle("-fx-background-color: red; -fx-text-fill: white;");
+        noButton.setStyle("-fx-background-color: gray; -fx-text-fill: white;");
+
+        // Action when "Yes" is clicked
+        yesButton.setOnAction(e -> {
+            try {
+                // Delete the table from the database
+                TableListFetcher.deleteTableFromDatabase(table);
+
+                // Refresh the list of tables from the database (get the latest list)
+                tablesList.clear();  // Clear the old list
+                tablesList.addAll(TableListFetcher.fetchTablesFromDatabase());  // Add the updated list
+
+                // Update the FlowPane or TableView with the latest tables list
+                updateTableCards(flowPane, tablesList);
+
+                // Close the delete dialog
+                deleteStage.close();
+
+            } catch (SQLException ex) {
+                showErrorDialog("Failed to delete the table. Please try again.");
+            }
+        });
+
+        // Action when "No" is clicked (close the dialog)
+        noButton.setOnAction(e -> deleteStage.close());
+
+        deletePane.getChildren().addAll(messageLabel, yesButton, noButton);
+
+        Scene scene = new Scene(deletePane, 300, 200);
+        deleteStage.setScene(scene);
+        deleteStage.show();
+    }
+
+
 
     private void showErrorDialog(String message) {
         Stage errorStage = new Stage();

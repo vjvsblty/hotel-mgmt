@@ -7,6 +7,8 @@ import com.app.hotel.hotelmgmtfx.model.OrderRow;
 import com.app.hotel.hotelmgmtfx.utils.MenuItemFetcher;
 import com.app.hotel.hotelmgmtfx.utils.TableListFetcher;
 import com.app.hotel.hotelmgmtfx.utils.OrderHandler;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -109,22 +111,28 @@ public class ManageOrdersScreen {
         ComboBox<MenuItem> menuItemSelector = setupMenuItemSelector();
         TextField quantityField = new TextField();
         quantityField.setPromptText("Quantity");
+        quantityField.setPrefWidth(80);
 
         Button addOrderButton = createAddOrderButton(menuItemSelector, quantityField, ordersDisplay, tables, table);
         Button printButton = createPrintButton(table, tables);
+        Button newOrderButton = newOrderButton(table, tables);
 
-        HBox form = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton);
+        HBox form = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton, newOrderButton);
         form.setAlignment(Pos.CENTER);
         return form;
     }
 
+
     private ComboBox<MenuItem> setupMenuItemSelector() {
         ComboBox<MenuItem> menuItemSelector = new ComboBox<>();
-        menuItemSelector.getItems().addAll(MenuItemFetcher.fetchMenuItems());
+        List<MenuItem> allMenuItems = MenuItemFetcher.fetchMenuItems();
+        ObservableList<MenuItem> filteredItems = FXCollections.observableArrayList(allMenuItems);
+
+        menuItemSelector.getItems().addAll(filteredItems);
         menuItemSelector.setPromptText("Select Menu Item");
         menuItemSelector.setEditable(true);
 
-        // Set a custom StringConverter
+        // Set a custom StringConverter to handle displaying MenuItem names
         menuItemSelector.setConverter(new StringConverter<>() {
             @Override
             public String toString(MenuItem item) {
@@ -141,15 +149,42 @@ public class ManageOrdersScreen {
             }
         });
 
-        // Add a listener for dynamic filtering
+        // Add a listener to filter menu items as the user types
         menuItemSelector.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
-            // Filter menu items dynamically as the user types
-            List<MenuItem> filteredItems = MenuItemFetcher.fetchMenuItems().stream()
-                    .filter(item -> item.getName().toLowerCase().startsWith(newValue.toLowerCase()))
-                    .collect(Collectors.toList());
-            menuItemSelector.getItems().setAll(filteredItems);
+            // Avoid triggering the filtering logic on item selection
+            if (menuItemSelector.getSelectionModel().getSelectedItem() != null) {
+                return;  // Skip filtering if an item is selected
+            }
+
+            // Check if the entered text is not empty
+            if (newValue != null && !newValue.trim().isEmpty()) {
+                // Filter menu items dynamically as the user types
+                List<MenuItem> filtered = allMenuItems.stream()
+                        .filter(item -> item.getName().toLowerCase().contains(newValue.toLowerCase()))  // Match anywhere in the name
+                        .collect(Collectors.toList());
+
+                // Update the ComboBox with the filtered items
+                filteredItems.setAll(filtered);  // Using filteredItems ObservableList for automatic update
+                if (!filtered.isEmpty()) {
+                    menuItemSelector.show();  // Show the dropdown with filtered items
+                }
+            } else {
+                // Reset to show all menu items if the input is cleared
+                filteredItems.setAll(allMenuItems);  // Reset to all items
+                menuItemSelector.hide();  // Hide the dropdown when the text field is empty
+            }
         });
-        System.out.println("menuitemselector "+menuItemSelector);
+
+        // Add a listener to avoid re-triggering filtering on selection
+        menuItemSelector.getSelectionModel().selectedItemProperty().addListener((observable, oldItem, newItem) -> {
+            if (newItem != null) {
+                // When an item is selected, stop filtering logic to prevent stack overflow
+
+                // Optionally, you may choose to hide the dropdown after selection
+                menuItemSelector.hide();
+            }
+        });
+
         return menuItemSelector;
     }
 
@@ -168,6 +203,23 @@ public class ManageOrdersScreen {
         printButton.setOnAction(e -> printReceipt(table.getTableName(), tables));
         return printButton;
     }
+
+    private Button newOrderButton(HotelTable table, List<HotelTable> tables) {
+        Button newOrderButton = new Button("New");
+        newOrderButton.setStyle("-fx-background-color: lightblue; -fx-text-fill: white;");
+
+        // Action when the button is clicked
+        newOrderButton.setOnAction(e -> {
+            // Reset the table's orders (assuming the table has an `orders` field or a similar structure)
+            //table.resetOrders();  // Assuming resetOrders is a method in your HotelTable class
+
+            // Optionally update the UI to reflect the reset (e.g., refresh the orders display)
+            //updateOrdersDisplay(tables);  // Assuming you have a method to update the orders display
+        });
+
+        return newOrderButton;
+    }
+
 
     private void handleAddOrder(ComboBox<MenuItem> menuItemSelector, TextField quantityField, VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
         String quantityStr = quantityField.getText();

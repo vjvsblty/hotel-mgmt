@@ -8,7 +8,6 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 
 import java.sql.Connection;
@@ -91,10 +90,16 @@ public class MenuCardScreen {
         // Initial population of cards
         updateMenuCards(menuCardsPane, filteredItems);
 
+        // Wrap the FlowPane with the menu items inside the ScrollPane for scrolling
+        ScrollPane scrollPane = new ScrollPane(menuCardsPane);
+        scrollPane.setFitToWidth(true);  // Ensures the content stretches to fit the width of the pane
+        scrollPane.setFitToHeight(false); // Allow vertical scrolling but not full height fit
+
         // Add components to the layout
-        menuManagePane.getChildren().addAll(searchField, addItemBox, menuCardsPane);
+        menuManagePane.getChildren().addAll(searchField, addItemBox, scrollPane);
         contentPane.getChildren().add(menuManagePane);
     }
+
 
     private void updateMenuCards(FlowPane flowPane, List<MenuItem> items) {
         flowPane.getChildren().clear();
@@ -124,7 +129,11 @@ public class MenuCardScreen {
         editButton.setStyle("-fx-background-color: #F39C12; -fx-text-fill: white;");
         editButton.setOnAction(e -> showEditDialog(item, flowPane));
 
-        card.getChildren().addAll(itemNameLabel, itemPriceLabel, editButton);
+        Button deleteButton = new Button("Delete");
+        deleteButton.setStyle("-fx-background-color: red; -fx-text-fill: white;");
+        deleteButton.setOnAction(e -> showDeleteDialog(item, flowPane, menuItemsList));
+
+        card.getChildren().addAll(itemNameLabel, itemPriceLabel, editButton, deleteButton);
         flowPane.getChildren().add(card);
     }
 
@@ -161,6 +170,51 @@ public class MenuCardScreen {
         editStage.setScene(scene);
         editStage.show();
     }
+
+    private void showDeleteDialog(MenuItem item, FlowPane flowPane, List<MenuItem> menuItemsList) {
+        Stage deleteStage = new Stage();
+        deleteStage.setTitle("Delete Menu Item");
+
+        VBox deletePane = new VBox(20);
+        deletePane.setAlignment(Pos.CENTER);
+        deletePane.setPadding(new Insets(20));
+
+        Label messageLabel = new Label("Are you sure you want to delete: "+item.getName()+" ?");
+        Button yesButton = new Button("Yes");
+        Button noButton = new Button("No");
+
+        yesButton.setStyle("-fx-background-color: red; -fx-text-fill: white;");
+        noButton.setStyle("-fx-background-color: gray; -fx-text-fill: white;");
+
+        // Action when "Yes" is clicked
+        yesButton.setOnAction(e -> {
+            try {
+                // Delete the menu item from the database
+                MenuItemFetcher.deleteItemFromDatabase(item);
+
+                // Remove the item from the menuItemsList
+                menuItemsList.remove(item);
+
+                // Refresh the FlowPane with the updated menu items list
+                updateMenuCards(flowPane, menuItemsList);
+
+                // Close the delete dialog
+                deleteStage.close();
+
+            } catch (SQLException ex) {
+            }
+        });
+
+        // Action when "No" is clicked (close the dialog)
+        noButton.setOnAction(e -> deleteStage.close());
+
+        deletePane.getChildren().addAll(messageLabel, yesButton, noButton);
+
+        Scene scene = new Scene(deletePane, 300, 200);
+        deleteStage.setScene(scene);
+        deleteStage.show();
+    }
+
 
 
     // Update item in the database

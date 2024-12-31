@@ -47,4 +47,15 @@ public class MenuItemFetcher {
         }
         return null;
     }
+
+    public static void deleteItemFromDatabase(MenuItem item) throws SQLException {
+        String query = "DELETE FROM menu_items WHERE id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, item.getId()); // Assuming MenuItem has an 'id' field
+            statement.executeUpdate();
+        }
+    }
+
 }
