@@ -40,14 +40,16 @@ public class MainScreen {
         Button menuCardButton = new Button("Menu Card");
         Button tablesManageButton = new Button("Tables");
         Button manageOrdersButton = new Button("Orders/Bills");
+        Button cashFlowButton = new Button("CashFlow");
 
         // Apply styles to the buttons
         styleSideMenuButton(menuCardButton);
         styleSideMenuButton(tablesManageButton);
         styleSideMenuButton(manageOrdersButton);
+        styleSideMenuButton(cashFlowButton);
 
         // Add buttons to the side menu
-        sideMenu.getChildren().addAll(menuCardButton, tablesManageButton, manageOrdersButton);
+        sideMenu.getChildren().addAll(menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
         mainLayout.setLeft(sideMenu);
 
         // Center content area
@@ -58,18 +60,25 @@ public class MainScreen {
 
         menuCardButton.setOnAction(e -> {
             new MenuCardScreen().loadScreen(contentPane);
-            highlightSelectedButton(menuCardButton, tablesManageButton, manageOrdersButton);
+            highlightSelectedButton(menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
         });
 
         tablesManageButton.setOnAction(e -> {
             new TablesManageScreen().loadScreen(contentPane);
-            highlightSelectedButton(tablesManageButton, menuCardButton, manageOrdersButton);
+            highlightSelectedButton(tablesManageButton, menuCardButton, manageOrdersButton, cashFlowButton);
         });
 
         manageOrdersButton.setOnAction(e -> {
             new ManageOrdersScreen().loadScreen(contentPane);
-            highlightSelectedButton(manageOrdersButton, menuCardButton, tablesManageButton);
+            highlightSelectedButton(manageOrdersButton, menuCardButton, tablesManageButton, cashFlowButton);
         });
+
+        cashFlowButton.setOnAction(e -> {
+            new CashFlowScreen().loadScreen(contentPane);
+            highlightSelectedButton(cashFlowButton, menuCardButton, tablesManageButton, manageOrdersButton);  // Corrected
+        });
+
+
 
         // Create and set scene
         Scene mainScene = new Scene(mainLayout, 800, 600);

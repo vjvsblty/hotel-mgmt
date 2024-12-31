@@ -28,6 +28,21 @@ public class OrderHandler {
         }
     }
 
+    public static void deleteOrdersByTableId(int tableId) {
+        String query = "DELETE FROM orders WHERE table_id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection(); // Assume DatabaseConnection class handles DB connections
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setInt(1, tableId);  // Set the tableId parameter for the DELETE query
+
+            int rowsAffected = statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();  // Handle SQL exceptions
+        }
+    }
+
+
     public static void updateOrder(Order order) {
         String query = "UPDATE orders SET quantity = ? WHERE table_id = ? AND menu_item_id = ?";
 

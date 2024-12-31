@@ -2,6 +2,7 @@ module com.app.hotel.hotelmgmtfx {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
+    requires com.fasterxml.jackson.databind;
 
 
     opens com.app.hotel.hotelmgmtfx to javafx.fxml;

@@ -20,3 +20,12 @@ CREATE TABLE orders (
     menu_item_id DECIMAL(10, 2) NOT NULL
     quantity DECIMAL(10, 2) NOT NULL
 );
+
+CREATE TABLE final_order (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    table_id INT NOT NULL,
+    menu_item_with_quantity JSON,
+    total_price DOUBLE NOT NULL,
+    order_date VARCHAR(255) NOT NULL
+);
+

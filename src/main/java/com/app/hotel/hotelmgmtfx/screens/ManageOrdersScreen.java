@@ -1,9 +1,8 @@
 package com.app.hotel.hotelmgmtfx.screens;
 
-import com.app.hotel.hotelmgmtfx.model.HotelTable;
+import com.app.hotel.hotelmgmtfx.model.*;
 import com.app.hotel.hotelmgmtfx.model.MenuItem;
-import com.app.hotel.hotelmgmtfx.model.Order;
-import com.app.hotel.hotelmgmtfx.model.OrderRow;
+import com.app.hotel.hotelmgmtfx.utils.FinalOrderHandler;
 import com.app.hotel.hotelmgmtfx.utils.MenuItemFetcher;
 import com.app.hotel.hotelmgmtfx.utils.TableListFetcher;
 import com.app.hotel.hotelmgmtfx.utils.OrderHandler;
@@ -50,7 +49,7 @@ public class ManageOrdersScreen {
         int row = 0;
         int col = 0;
         for (HotelTable table : tables) {
-            VBox tableCard = createTableCard(table, tables);
+            VBox tableCard = createTableCard(table, tables, contentPane);
             tableCardsGrid.add(tableCard, col, row);
             col++;
             if (col == 2) {
@@ -73,13 +72,13 @@ public class ManageOrdersScreen {
     }
 
 
-    private VBox createTableCard(HotelTable table, List<HotelTable> tables) {
+    private VBox createTableCard(HotelTable table, List<HotelTable> tables, StackPane contentPane) {
         VBox tableCard = new VBox(10);
         styleTableCard(tableCard);
 
         HBox tableHeader = createTableHeader(table);
         VBox ordersDisplay = createOrdersDisplay(table, tables);
-        HBox orderForm = createOrderForm(ordersDisplay, tables, table);
+        HBox orderForm = createOrderForm(ordersDisplay, tables, table, contentPane);
 
         tableCard.getChildren().addAll(tableHeader, ordersDisplay, orderForm);
         return tableCard;
@@ -107,7 +106,7 @@ public class ManageOrdersScreen {
         return ordersDisplay;
     }
 
-    private HBox createOrderForm(VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
+    private HBox createOrderForm(VBox ordersDisplay, List<HotelTable> tables, HotelTable table, StackPane contentPane) {
         ComboBox<MenuItem> menuItemSelector = setupMenuItemSelector();
         TextField quantityField = new TextField();
         quantityField.setPromptText("Quantity");
@@ -115,9 +114,9 @@ public class ManageOrdersScreen {
 
         Button addOrderButton = createAddOrderButton(menuItemSelector, quantityField, ordersDisplay, tables, table);
         Button printButton = createPrintButton(table, tables);
-        Button newOrderButton = newOrderButton(table, tables);
+        Button saveOrderButton = saveOrderButton(table, tables, contentPane);
 
-        HBox form = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton, newOrderButton);
+        HBox form = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton, saveOrderButton);
         form.setAlignment(Pos.CENTER);
         return form;
     }
@@ -204,20 +203,91 @@ public class ManageOrdersScreen {
         return printButton;
     }
 
-    private Button newOrderButton(HotelTable table, List<HotelTable> tables) {
-        Button newOrderButton = new Button("New");
-        newOrderButton.setStyle("-fx-background-color: lightblue; -fx-text-fill: white;");
+    private Button saveOrderButton(HotelTable table, List<HotelTable> tables, StackPane contentPane) {
+        Button saveOrderButton = new Button("Save");
+        saveOrderButton.setStyle("-fx-background-color: blue; -fx-text-fill: white;");
 
-        // Action when the button is clicked
-        newOrderButton.setOnAction(e -> {
-            // Reset the table's orders (assuming the table has an `orders` field or a similar structure)
-            //table.resetOrders();  // Assuming resetOrders is a method in your HotelTable class
+        saveOrderButton.setOnAction(e -> {
+            try {
+                // Fetch orders for the table
+                List<Order> orders = OrderHandler.fetchOrdersForTable(table.getId());
 
-            // Optionally update the UI to reflect the reset (e.g., refresh the orders display)
-            //updateOrdersDisplay(tables);  // Assuming you have a method to update the orders display
+                if (orders.isEmpty()) {
+                    showErrorDialog("No orders to save for this table.");
+                    return;
+                }
+
+                // Calculate total cost and map orders
+                double totalCost = 0.0;
+
+                // Final Order Object
+                List<MenuItemWithQuantity> finalItems = new ArrayList<>();
+
+                for (Order order : orders) {
+                    // Fetch menu item details
+                    MenuItem menuItem = MenuItemFetcher.fetchMenuItemById(order.getMenuItemId());
+
+                    if (menuItem != null) {
+                        int quantity = order.getQuantity();
+                        double cost = menuItem.getPrice() * quantity;
+                        totalCost += cost;
+
+                        // Add item to final order
+                        finalItems.add(new MenuItemWithQuantity(menuItem.getId(), menuItem.getName(), quantity));
+                    }
+                }
+
+                // Create Final Order Object
+                FinalOrder finalOrder = new FinalOrder(
+                        0, // Auto-generate Order ID (if applicable)
+                        table.getId(),
+                        getTodayDate(), // Current Date
+                        totalCost,
+                        finalItems
+                );
+
+                // Save the final order
+                FinalOrderHandler.addOrder(finalOrder);
+                OrderHandler.deleteOrdersByTableId(finalOrder.getTableId());
+                // Reset the table's UI after saving the order
+                loadScreen(contentPane);
+                showSuccessDialog("Order saved successfully with total cost: " + String.format("%.2f", totalCost) + " ₹");
+
+
+            } catch (Exception ex) {
+                showErrorDialog("Error saving order: " + ex.getMessage());
+            }
         });
 
-        return newOrderButton;
+        return saveOrderButton;
+    }
+
+
+    private void clearOrdersForTable(HotelTable table, List<HotelTable> tables) {
+        // Find the VBox that displays orders for the table
+        VBox ordersDisplay = getOrdersDisplayForTable(table, tables);
+
+        // Clear the orders display
+        if (ordersDisplay != null) {
+            ordersDisplay.getChildren().clear();  // Clear any existing orders
+            Label emptyLabel = new Label("No orders for " + table.getTableName());
+            ordersDisplay.getChildren().add(emptyLabel);  // Show a message saying no orders
+        }
+    }
+
+    private VBox getOrdersDisplayForTable(HotelTable table, List<HotelTable> tables) {
+        // Find the table card that corresponds to the given table and return the orders display VBox
+        return tables.stream()
+                .filter(t -> t.getTableName().equals(table.getTableName()))
+                .findFirst()
+                .map(t -> {
+                    // Find the VBox of orders associated with this table
+                    VBox ordersDisplay = new VBox(10);
+                    ordersDisplay.setAlignment(Pos.TOP_LEFT);
+                    displayOrdersForTable(table.getTableName(), ordersDisplay, tables);
+                    return ordersDisplay;
+                })
+                .orElse(null); // Return null if no matching table found
     }
 
 
@@ -348,10 +418,16 @@ public class ManageOrdersScreen {
     }
 
 
-
     private void showErrorDialog(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Error");
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void showSuccessDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("SUCCESS");
         alert.setContentText(message);
         alert.showAndWait();
     }

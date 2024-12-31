@@ -22,7 +22,7 @@ public class LoginScreen {
         StackPane root = new StackPane();
 
         // Background: Logo as Background Image
-        ImageView logoImageView = new ImageView(new Image("file:src/main/resources/logo.png")); // Your logo path
+        ImageView logoImageView = new ImageView(new Image("file:src/main/resources/hotel-menu.jpg")); // Your logo path
         logoImageView.setFitWidth(900); // Adjust width as necessary
         logoImageView.setFitHeight(900); // Adjust height as necessary
         logoImageView.setPreserveRatio(true);
