@@ -10,6 +10,7 @@ import com.app.hotel.hotelmgmtfx.utils.OrderHandler;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.util.StringConverter;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -72,76 +73,114 @@ public class ManageOrdersScreen {
 
     private VBox createTableCard(HotelTable table, List<HotelTable> tables) {
         VBox tableCard = new VBox(10);
+        styleTableCard(tableCard);
+
+        HBox tableHeader = createTableHeader(table);
+        VBox ordersDisplay = createOrdersDisplay(table, tables);
+        HBox orderForm = createOrderForm(ordersDisplay, tables, table);
+
+        tableCard.getChildren().addAll(tableHeader, ordersDisplay, orderForm);
+        return tableCard;
+    }
+
+    private void styleTableCard(VBox tableCard) {
         tableCard.setStyle("-fx-border-color: green; -fx-padding: 10; -fx-background-color: #f0f0f0; -fx-border-radius: 10; -fx-background-radius: 10;");
-        tableCard.setPrefWidth(600); // Adjust width as needed
-        tableCard.setPrefHeight(300); // Increase preferred height
-
-        // Add a fixed size
+        tableCard.setPrefSize(600, 300);
         tableCard.setMinHeight(300);
-        tableCard.setMaxHeight(400); // Optional, to prevent excessive growth
+        tableCard.setMaxHeight(400);
+    }
 
-        // Card heading with table name
+    private HBox createTableHeader(HotelTable table) {
         Label tableNameLabel = new Label(table.getTableName());
         tableNameLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        // Wrap the label in an HBox and center it
-        HBox tableNameContainer = new HBox(tableNameLabel);
-        tableNameContainer.setAlignment(Pos.CENTER); // Center alignment
-        tableCard.getChildren().add(tableNameContainer);
+        HBox header = new HBox(tableNameLabel);
+        header.setAlignment(Pos.CENTER);
+        return header;
+    }
 
-        // Orders Display (inside the card)
+    private VBox createOrdersDisplay(HotelTable table, List<HotelTable> tables) {
         VBox ordersDisplay = new VBox(10);
         ordersDisplay.setAlignment(Pos.TOP_LEFT);
-        displayOrdersForTable(table.getTableName(), ordersDisplay, tables); // Fetch and display orders for the specific table
-        tableCard.getChildren().add(ordersDisplay);
+        displayOrdersForTable(table.getTableName(), ordersDisplay, tables);
+        return ordersDisplay;
+    }
 
-        // Add Order Form inside the card
-        ComboBox<MenuItem> menuItemSelector = new ComboBox<>();
-        menuItemSelector.getItems().addAll(MenuItemFetcher.fetchMenuItems());
-        menuItemSelector.setPromptText("Select Menu Item");
-
-        // Enable filtering with case-insensitive matching
-        menuItemSelector.setEditable(true); // Make it editable so we can filter
-
-        menuItemSelector.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
-            // Filter menu items based on the user's input
-            List<MenuItem> filteredItems = MenuItemFetcher.fetchMenuItems().stream()
-                    .filter(item -> item.getName().toLowerCase().startsWith(newValue.toLowerCase())) // Case-insensitive match
-                    .collect(Collectors.toList());
-            menuItemSelector.getItems().setAll(filteredItems);
-        });
-
-
+    private HBox createOrderForm(VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
+        ComboBox<MenuItem> menuItemSelector = setupMenuItemSelector();
         TextField quantityField = new TextField();
         quantityField.setPromptText("Quantity");
 
+        Button addOrderButton = createAddOrderButton(menuItemSelector, quantityField, ordersDisplay, tables, table);
+        Button printButton = createPrintButton(table, tables);
+
+        HBox form = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton);
+        form.setAlignment(Pos.CENTER);
+        return form;
+    }
+
+    private ComboBox<MenuItem> setupMenuItemSelector() {
+        ComboBox<MenuItem> menuItemSelector = new ComboBox<>();
+        menuItemSelector.getItems().addAll(MenuItemFetcher.fetchMenuItems());
+        menuItemSelector.setPromptText("Select Menu Item");
+        menuItemSelector.setEditable(true);
+
+        // Set a custom StringConverter
+        menuItemSelector.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(MenuItem item) {
+                return item == null ? "" : item.getName();  // Display the name of the MenuItem
+            }
+
+            @Override
+            public MenuItem fromString(String string) {
+                // Convert the string typed by the user into a MenuItem object
+                return menuItemSelector.getItems().stream()
+                        .filter(item -> item.getName().equalsIgnoreCase(string))
+                        .findFirst()
+                        .orElse(null);  // Return null if no match found
+            }
+        });
+
+        // Add a listener for dynamic filtering
+        menuItemSelector.getEditor().textProperty().addListener((observable, oldValue, newValue) -> {
+            // Filter menu items dynamically as the user types
+            List<MenuItem> filteredItems = MenuItemFetcher.fetchMenuItems().stream()
+                    .filter(item -> item.getName().toLowerCase().startsWith(newValue.toLowerCase()))
+                    .collect(Collectors.toList());
+            menuItemSelector.getItems().setAll(filteredItems);
+        });
+        System.out.println("menuitemselector "+menuItemSelector);
+        return menuItemSelector;
+    }
+
+
+
+    private Button createAddOrderButton(ComboBox<MenuItem> menuItemSelector, TextField quantityField, VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
         Button addOrderButton = new Button("Add");
         addOrderButton.setStyle("-fx-background-color: orange; -fx-text-fill: white;");
+        addOrderButton.setOnAction(e -> handleAddOrder(menuItemSelector, quantityField, ordersDisplay, tables, table));
+        return addOrderButton;
+    }
+
+    private Button createPrintButton(HotelTable table, List<HotelTable> tables) {
         Button printButton = new Button("Print");
         printButton.setStyle("-fx-background-color: green; -fx-text-fill: white;");
+        printButton.setOnAction(e -> printReceipt(table.getTableName(), tables));
+        return printButton;
+    }
 
-        addOrderButton.setOnAction(e -> {
-            String quantityStr = quantityField.getText();
-            String selectedTable = table.getTableName();
-            MenuItem selectedItem = menuItemSelector.getValue();
+    private void handleAddOrder(ComboBox<MenuItem> menuItemSelector, TextField quantityField, VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
+        String quantityStr = quantityField.getText();
+        MenuItem selectedItem = menuItemSelector.getValue();
 
-            if (selectedItem == null) {
-                showErrorDialog("Please select a menu item.");
-                return;
-            }
-            if (quantityStr.isEmpty()) {
-                showErrorDialog("Please enter a quantity.");
-                return;
-            }
+        // Check if an order already exists for this table and menu item
+        Optional<Order> existingOrderOptional = OrderHandler.fetchOrdersForTable(table.getId()).stream()
+                .filter(order -> order.getMenuItemId() == selectedItem.getId())
+                .findFirst();
 
+        if (validateInputs(quantityStr, selectedItem)) {
             try {
                 int quantity = Integer.parseInt(quantityStr);
-                int tableId = table.getId();
-                int menuItemId = selectedItem.getId();
-
-                // Check if an order already exists for this table and menu item
-                Optional<Order> existingOrderOptional = OrderHandler.fetchOrdersForTable(tableId).stream()
-                        .filter(order -> order.getMenuItemId() == menuItemId)
-                        .findFirst();
 
                 if (existingOrderOptional.isPresent()) {
                     // If an order exists, update the quantity
@@ -150,32 +189,33 @@ public class ManageOrdersScreen {
                     OrderHandler.updateOrder(existingOrder); // Save the updated order to the database
                 } else {
                     // If no existing order, create a new one
-                    Order newOrder = new Order(Long.valueOf(1), tableId, menuItemId, quantity);
+                    Order newOrder = new Order(Long.valueOf(1), table.getId(), selectedItem.getId(), quantity);
                     OrderHandler.addOrder(newOrder); // Save new order to the database
                 }
-
                 quantityField.clear();
-                // Refresh the orders display for this table
-                displayOrdersForTable(selectedTable, ordersDisplay, tables);
+                displayOrdersForTable(table.getTableName(), ordersDisplay, tables);
             } catch (NumberFormatException ex) {
                 showErrorDialog("Please enter a valid quantity.");
             }
-        });
-
-
-        printButton.setOnAction(e -> {
-            String selectedTable = table.getTableName(); // Use the specific table name from the card
-
-            // Fetch table details to print the receipt
-            printReceipt(selectedTable, tables);
-        });
-
-        HBox addOrderBox = new HBox(10, menuItemSelector, quantityField, addOrderButton, printButton);
-        addOrderBox.setAlignment(Pos.CENTER);
-        tableCard.getChildren().add(addOrderBox);
-
-        return tableCard;
+        } else if (selectedItem == null) {
+            showErrorDialog("Invalid selection. Please select a valid menu item.");
+        }
     }
+
+
+    private boolean validateInputs(String quantityStr, MenuItem selectedItem) {
+        if (selectedItem == null) {
+            showErrorDialog("Please select a menu item.");
+            return false;
+        }
+        if (quantityStr.isEmpty()) {
+            showErrorDialog("Please enter a quantity.");
+            return false;
+        }
+        return true;
+    }
+
+
 
     private void displayOrdersForTable(String table, VBox ordersDisplay, List<HotelTable> tableList) {
         ordersDisplay.getChildren().clear();
