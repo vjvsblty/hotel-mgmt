@@ -41,6 +41,6 @@ public class MenuItem {
 
     @Override
     public String toString() {
-        return name + " ("+price+"₹)";
+        return name;
     }
 }

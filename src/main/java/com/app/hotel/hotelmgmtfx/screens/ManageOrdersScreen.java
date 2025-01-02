@@ -165,12 +165,25 @@ public class ManageOrdersScreen {
                 // Update the ComboBox with the filtered items
                 filteredItems.setAll(filtered);  // Using filteredItems ObservableList for automatic update
                 if (!filtered.isEmpty()) {
+                    menuItemSelector.setItems(filteredItems);
                     menuItemSelector.show();  // Show the dropdown with filtered items
                 }
             } else {
                 // Reset to show all menu items if the input is cleared
                 filteredItems.setAll(allMenuItems);  // Reset to all items
-                menuItemSelector.hide();  // Hide the dropdown when the text field is empty
+                menuItemSelector.setItems(filteredItems);
+                menuItemSelector.hide();// Hide the dropdown when the text field is empty
+                menuItemSelector.getEditor().clear();
+            }
+        });
+
+        // Add a listener to show the dropdown again when the user types after clearing
+        menuItemSelector.getEditor().setOnKeyPressed(event -> {
+            if (menuItemSelector.getEditor().getText().trim().isEmpty()) {
+                // If the text field is empty, reset to show all items
+                filteredItems.setAll(allMenuItems);
+                menuItemSelector.setItems(filteredItems);
+                menuItemSelector.show();  // Ensure dropdown shows again when typing after clearing
             }
         });
 
@@ -183,7 +196,6 @@ public class ManageOrdersScreen {
                 menuItemSelector.hide();
             }
         });
-
         return menuItemSelector;
     }
 
@@ -263,34 +275,6 @@ public class ManageOrdersScreen {
     }
 
 
-    private void clearOrdersForTable(HotelTable table, List<HotelTable> tables) {
-        // Find the VBox that displays orders for the table
-        VBox ordersDisplay = getOrdersDisplayForTable(table, tables);
-
-        // Clear the orders display
-        if (ordersDisplay != null) {
-            ordersDisplay.getChildren().clear();  // Clear any existing orders
-            Label emptyLabel = new Label("No orders for " + table.getTableName());
-            ordersDisplay.getChildren().add(emptyLabel);  // Show a message saying no orders
-        }
-    }
-
-    private VBox getOrdersDisplayForTable(HotelTable table, List<HotelTable> tables) {
-        // Find the table card that corresponds to the given table and return the orders display VBox
-        return tables.stream()
-                .filter(t -> t.getTableName().equals(table.getTableName()))
-                .findFirst()
-                .map(t -> {
-                    // Find the VBox of orders associated with this table
-                    VBox ordersDisplay = new VBox(10);
-                    ordersDisplay.setAlignment(Pos.TOP_LEFT);
-                    displayOrdersForTable(table.getTableName(), ordersDisplay, tables);
-                    return ordersDisplay;
-                })
-                .orElse(null); // Return null if no matching table found
-    }
-
-
     private void handleAddOrder(ComboBox<MenuItem> menuItemSelector, TextField quantityField, VBox ordersDisplay, List<HotelTable> tables, HotelTable table) {
         String quantityStr = quantityField.getText();
         MenuItem selectedItem = menuItemSelector.getValue();
@@ -307,8 +291,14 @@ public class ManageOrdersScreen {
                 if (existingOrderOptional.isPresent()) {
                     // If an order exists, update the quantity
                     Order existingOrder = existingOrderOptional.get();
-                    existingOrder.setQuantity(existingOrder.getQuantity() + quantity); // Increment the existing quantity
-                    OrderHandler.updateOrder(existingOrder); // Save the updated order to the database
+                    int newQuantity = existingOrder.getQuantity() + quantity;
+                    if(newQuantity == 0){
+                        OrderHandler.deleteOrderById(existingOrder.getTableId(), existingOrder.getMenuItemId());
+                    }else{
+                        existingOrder.setQuantity(existingOrder.getQuantity() + quantity); // Increment the existing quantity
+                        OrderHandler.updateOrder(existingOrder); // Save the updated order to the database
+                    }
+
                 } else {
                     // If no existing order, create a new one
                     Order newOrder = new Order(Long.valueOf(1), table.getId(), selectedItem.getId(), quantity);
@@ -358,14 +348,14 @@ public class ManageOrdersScreen {
 
         // Create TableView for displaying orders
         TableView<OrderRow> ordersTable = new TableView<>();
+        ordersTable.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY); // Prevent extra column
         ordersTable.setPrefWidth(400);
 
         ordersTable.setRowFactory(tv -> {
             TableRow<OrderRow> row = new TableRow<>();
-            row.setMinHeight(30);  // Set a minimum height for rows
+            row.setMinHeight(30); // Set a minimum height for rows
             return row;
         });
-
 
         // Define columns
         TableColumn<OrderRow, String> itemColumn = new TableColumn<>("Item");
@@ -383,6 +373,9 @@ public class ManageOrdersScreen {
         // Add columns to the table
         ordersTable.getColumns().addAll(itemColumn, quantityColumn, totalColumn);
 
+        // Fit table width to columns
+        ordersTable.setPrefWidth(itemColumn.getPrefWidth() + quantityColumn.getPrefWidth() + totalColumn.getPrefWidth());
+
         // Populate the table with data
         double grandTotal = 0;
         for (Order order : orders) {
@@ -398,7 +391,7 @@ public class ManageOrdersScreen {
         }
 
         // Display the total price of all items
-        Label totalLabel = new Label("Total : " + String.format("%.2f", grandTotal)+" ₹");
+        Label totalLabel = new Label("Total : " + String.format("%.2f", grandTotal) + " ₹");
         totalLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
         // Add the table and total to the container
@@ -416,6 +409,7 @@ public class ManageOrdersScreen {
         // Add the ScrollPane to the main display
         ordersDisplay.getChildren().add(scrollPane);
     }
+
 
 
     private void showErrorDialog(String message) {

@@ -42,6 +42,26 @@ public class OrderHandler {
         }
     }
 
+    public static void deleteOrderById(int table_id, int menu_item_id) {
+        // Modify the query to delete using both table_id and menu_item_id
+        String query = "DELETE FROM orders WHERE table_id = ? AND menu_item_id = ?";
+
+        try (Connection connection = DatabaseConnection.getConnection(); // Assume DatabaseConnection class handles DB connections
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            // Set the parameters for the DELETE query
+            statement.setInt(1, table_id);  // Set the table_id parameter
+            statement.setInt(2, menu_item_id);  // Set the menu_item_id parameter
+
+            // Execute the query
+            int rowsAffected = statement.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();  // Handle SQL exceptions
+        }
+    }
+
+
 
     public static void updateOrder(Order order) {
         String query = "UPDATE orders SET quantity = ? WHERE table_id = ? AND menu_item_id = ?";
@@ -64,7 +84,7 @@ public class OrderHandler {
 
     public static List<Order> fetchOrdersForTable(int tableId) {
         List<Order> orders = new ArrayList<>();
-        String query = "SELECT o.table_id, o.menu_item_id, o.quantity, m.name, m.price " +
+        String query = "SELECT o.id, o.table_id, o.menu_item_id, o.quantity, m.name, m.price " +
                 "FROM orders o " +
                 "JOIN menu_items m ON o.menu_item_id = m.id " +
                 "WHERE o.table_id = ?";
