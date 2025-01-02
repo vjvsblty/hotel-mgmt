@@ -42,7 +42,7 @@ public class CashFlowScreen {
         datePicker.setStyle("-fx-font-size: 16px; -fx-padding: 5px;");
 
         // Button to trigger data fetching based on selected date
-        Button fetchDataButton = new Button("Fetch Data");
+        Button fetchDataButton = new Button("Show Cash Flow");
         fetchDataButton.setStyle("-fx-font-size: 16px; -fx-padding: 10px;");
 
         // Add DatePicker and Button to HBox

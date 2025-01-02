@@ -109,9 +109,15 @@ public class MenuCardScreen {
     }
 
     private void addMenuCard(FlowPane flowPane, MenuItem item) {
+        flowPane.setHgap(10); // Horizontal gap between cards
+        flowPane.setVgap(10); // Vertical gap between rows
+        flowPane.setPrefWrapLength(4 * 200 + 30); // 4 cards + gaps
+
         VBox card = new VBox(10);
         card.setAlignment(Pos.CENTER);
         card.setPadding(new Insets(10));
+        card.setPrefWidth(200); // Set fixed width
+        card.setPrefHeight(150); // Set fixed height
         card.setStyle("-fx-border-color: #D5DBDB; -fx-border-radius: 5; -fx-background-color: #F9F9F9; "
                 + "-fx-background-radius: 5; -fx-padding: 10;");
 
