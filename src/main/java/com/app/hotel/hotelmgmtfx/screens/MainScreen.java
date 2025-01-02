@@ -5,10 +5,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
 public class MainScreen {
@@ -17,24 +16,23 @@ public class MainScreen {
     public void showMainScreen(Stage primaryStage) {
         BorderPane mainLayout = new BorderPane();
 
-        // Header Section
-        HBox header = new HBox(10);
-        header.setPadding(new Insets(10));
-        header.setStyle("-fx-background-color: #2C3E50;");
-        header.setAlignment(Pos.CENTER);
-
-        // Hotel Name
-        Label hotelNameLabel = new Label("हॉटेल चुलांगन");
-        hotelNameLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #ECF0F1;");
-
-        // Add hotel name to the header
-        header.getChildren().addAll(hotelNameLabel);
-
         // Side Menu
-        VBox sideMenu = new VBox(10);
+        VBox sideMenu = new VBox(20); // Add spacing between elements
         sideMenu.setPadding(new Insets(20));
         sideMenu.setStyle("-fx-background-color: #2C3E50;");
-        sideMenu.setPrefWidth(250); // Slightly wider side menu for better spacing
+        sideMenu.setPrefWidth(250); // Fixed width for the sidebar
+        sideMenu.setAlignment(Pos.TOP_CENTER); // Align content to the center
+
+        // Logo
+        ImageView logo = new ImageView(new Image("file:src/main/resources/hotel-gate.jpg")); // Replace with the actual path to the logo
+        logo.setFitWidth(200);
+        logo.setFitHeight(200);
+
+        // Hotel Name
+        Label hotelNameLabel = new Label("हॉटेल चुलांगण");
+        hotelNameLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FFD700;");
+        hotelNameLabel.setWrapText(true);
+        hotelNameLabel.setAlignment(Pos.CENTER);
 
         // Menu Buttons
         Button menuCardButton = new Button("Menu Card");
@@ -42,51 +40,53 @@ public class MainScreen {
         Button manageOrdersButton = new Button("Orders/Bills");
         Button cashFlowButton = new Button("CashFlow");
 
-        // Apply styles to the buttons
         styleSideMenuButton(menuCardButton);
         styleSideMenuButton(tablesManageButton);
         styleSideMenuButton(manageOrdersButton);
         styleSideMenuButton(cashFlowButton);
 
-        // Add buttons to the side menu
-        sideMenu.getChildren().addAll(menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
-        mainLayout.setLeft(sideMenu);
+        // Add elements to the side menu
+        sideMenu.getChildren().addAll(logo, hotelNameLabel, menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
+        sideMenu.setAlignment(Pos.CENTER); // Center all items vertically
+
+        // Fill the remaining space at the bottom
+        Region spacer = new Region();
+        VBox.setVgrow(spacer, Priority.ALWAYS);
+        sideMenu.getChildren().add(spacer);
 
         // Center content area
         StackPane contentPane = new StackPane();
         contentPane.setPadding(new Insets(20));
         mainLayout.setCenter(contentPane);
-        mainLayout.setTop(header);
+        mainLayout.setLeft(sideMenu);
 
+        // Button actions
         menuCardButton.setOnAction(e -> {
             new MenuCardScreen().loadScreen(contentPane);
             highlightSelectedButton(menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
         });
-
         tablesManageButton.setOnAction(e -> {
             new TablesManageScreen().loadScreen(contentPane);
             highlightSelectedButton(tablesManageButton, menuCardButton, manageOrdersButton, cashFlowButton);
         });
-
         manageOrdersButton.setOnAction(e -> {
             new ManageOrdersScreen().loadScreen(contentPane);
             highlightSelectedButton(manageOrdersButton, menuCardButton, tablesManageButton, cashFlowButton);
         });
-
         cashFlowButton.setOnAction(e -> {
             new CashFlowScreen().loadScreen(contentPane);
-            highlightSelectedButton(cashFlowButton, menuCardButton, tablesManageButton, manageOrdersButton);  // Corrected
+            highlightSelectedButton(cashFlowButton, menuCardButton, tablesManageButton, manageOrdersButton);
         });
 
-
-
-        // Create and set scene
-        Scene mainScene = new Scene(mainLayout, 800, 600);
+        // Scene setup
+        Scene mainScene = new Scene(mainLayout, 1024, 768);
         primaryStage.setScene(mainScene);
-        primaryStage.setMaximized(true); // Maximized window
-        primaryStage.setFullScreen(true); // Optional: Full-screen mode
+        primaryStage.setMaximized(true); // Make the window full screen
         primaryStage.setTitle("Hotel Management - Home");
     }
+
+
+
 
     // Styling for Side Menu Buttons
     private void styleSideMenuButton(Button button) {
