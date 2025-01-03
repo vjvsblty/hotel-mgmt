@@ -38,15 +38,17 @@ public class MainScreen {
         Button menuCardButton = new Button("Menu Card");
         Button tablesManageButton = new Button("Tables");
         Button manageOrdersButton = new Button("Orders/Bills");
+        Button earningButton = new Button("Earning");
         Button cashFlowButton = new Button("CashFlow");
 
         styleSideMenuButton(menuCardButton);
         styleSideMenuButton(tablesManageButton);
         styleSideMenuButton(manageOrdersButton);
+        styleSideMenuButton(earningButton);
         styleSideMenuButton(cashFlowButton);
 
         // Add elements to the side menu
-        sideMenu.getChildren().addAll(logo, hotelNameLabel, menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
+        sideMenu.getChildren().addAll(logo, hotelNameLabel, menuCardButton, tablesManageButton, manageOrdersButton, earningButton, cashFlowButton);
         sideMenu.setAlignment(Pos.CENTER); // Center all items vertically
 
         // Fill the remaining space at the bottom
@@ -63,19 +65,23 @@ public class MainScreen {
         // Button actions
         menuCardButton.setOnAction(e -> {
             new MenuCardScreen().loadScreen(contentPane);
-            highlightSelectedButton(menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
+            highlightSelectedButton(menuCardButton, tablesManageButton, manageOrdersButton, earningButton, cashFlowButton);
         });
         tablesManageButton.setOnAction(e -> {
             new TablesManageScreen().loadScreen(contentPane);
-            highlightSelectedButton(tablesManageButton, menuCardButton, manageOrdersButton, cashFlowButton);
+            highlightSelectedButton(tablesManageButton, menuCardButton, manageOrdersButton, earningButton, cashFlowButton);
         });
         manageOrdersButton.setOnAction(e -> {
             new ManageOrdersScreen().loadScreen(contentPane);
-            highlightSelectedButton(manageOrdersButton, menuCardButton, tablesManageButton, cashFlowButton);
+            highlightSelectedButton(manageOrdersButton, menuCardButton, tablesManageButton, earningButton, cashFlowButton);
+        });
+        earningButton.setOnAction(e -> {
+            new EarningScreen().loadScreen(contentPane);
+            highlightSelectedButton(earningButton, menuCardButton, tablesManageButton, manageOrdersButton, cashFlowButton);
         });
         cashFlowButton.setOnAction(e -> {
             new CashFlowScreen().loadScreen(contentPane);
-            highlightSelectedButton(cashFlowButton, menuCardButton, tablesManageButton, manageOrdersButton);
+            highlightSelectedButton(cashFlowButton, earningButton, menuCardButton, tablesManageButton, manageOrdersButton);
         });
 
         // Scene setup
